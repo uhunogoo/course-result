@@ -8,8 +8,10 @@ import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
 import firefliesVertex from './shaders/fireflies/vertex.glsl'
 import firefliesFragment  from './shaders/fireflies/fragment.glsl'
 
-import portalVertex from './shaders/portal/vertex.glsl'
-import portalFragment  from './shaders/portal/fragment.glsl'
+import tvVertex from './shaders/tv/vertex.glsl'
+import tvFragment  from './shaders/tv/fragment.glsl'
+import pictureVertex from './shaders/picture/vertex.glsl'
+import pictureFragment  from './shaders/picture/fragment.glsl'
 
 /**
  * Base
@@ -44,62 +46,57 @@ gltfLoader.setDRACOLoader(dracoLoader)
 /**
  * Textures
  */
-const bakedTexture = textureLoader.load('baked.jpg')
+const bakedTexture = textureLoader.load('baked-texture.jpg')
 bakedTexture.flipY = false
 bakedTexture.encoding = THREE.sRGBEncoding
 /**
  * Materials
  */
 // Baked material 
-const bakedMaterial = new THREE.MeshBasicMaterial({ map: bakedTexture })
+const bakedMaterial = new THREE.MeshBasicMaterial({ map: bakedTexture, side: THREE.DoubleSide })
 
-// Pole light material
-const poleLightMaterial = new THREE.MeshBasicMaterial({ color: 0xffffe5 })
+// tv material
+const tvMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+        u_time: { value: 0 }
+    },
+    fragmentShader: tvFragment,
+    vertexShader: tvVertex,
+    defines: {
+        PR: Math.min(2, window.devicePixelRatio).toFixed(1)
+    }
+})
+
+// picture material
+const pictureMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+        u_time: { value: 0 }
+    },
+    fragmentShader: pictureFragment,
+    vertexShader: pictureVertex,
+    defines: {
+        PR: Math.min(2, window.devicePixelRatio).toFixed(1)
+    }
+})
 
 // Portal light material
-// debugObject.portaColorStart = '#a13cd9'
-// debugObject.portaColorEnd = '#ca9ef0'
-// debugObject.portaColorStart = '#a555e3'
-// debugObject.portaColorEnd = '#c998d7'
 debugObject.portaColorStart = '#9868eb'
 debugObject.portaColorEnd = '#ede4f5'
 
-const portalLightMaterial = new THREE.ShaderMaterial({
-    vertexShader: portalVertex,
-    fragmentShader: portalFragment,
-    uniforms: {
-        u_pixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
-        u_time: { value: 0 },
-        u_colorStart: { value: new THREE.Color(debugObject.portaColorStart) },
-        u_colorEnd: { value: new THREE.Color(debugObject.portaColorEnd) },
-    }
-})
-gui
-    .addColor( debugObject, 'portaColorStart')
-    .onChange(() => {
-        portalLightMaterial.uniforms.u_colorStart.value = new THREE.Color(debugObject.portaColorStart)
-    })
-gui
-    .addColor( debugObject, 'portaColorEnd')
-    .onChange(() => {
-        portalLightMaterial.uniforms.u_colorEnd.value = new THREE.Color(debugObject.portaColorEnd)
-    })
 
 /**
  * Model
  */
 gltfLoader.load(
-    'portal.glb',
+    'office-ready.glb',
     (model) => {
         const bakedMesh = model.scene.children.find( child => child.name === 'baked')
-        const poleLightAMesh = model.scene.children.find( child => child.name === 'poleLightA')
-        const poleLightBMesh = model.scene.children.find( child => child.name === 'poleLightB')
-        const portalLightMesh = model.scene.children.find( child => child.name === 'portalLight')
+        const tvScreen = model.scene.children.find( child => child.name === 'screen')
+        const picture = model.scene.children.find( child => child.name === 'picture')
         
         bakedMesh.material = bakedMaterial
-        poleLightAMesh.material = poleLightMaterial
-        poleLightBMesh.material = poleLightMaterial
-        portalLightMesh.material = portalLightMaterial
+        tvScreen.material = tvMaterial
+        picture.material = pictureMaterial
 
         scene.add( model.scene )
     }
@@ -216,7 +213,7 @@ const tick = () =>
 
     // Update material
     firefliesMaterial.uniforms.u_time.value = elapsedTime
-    portalLightMaterial.uniforms.u_time.value = elapsedTime
+    tvMaterial.uniforms.u_time.value = elapsedTime
     
     // Update controls
     controls.update()
