@@ -62,6 +62,7 @@ const tvMaterial = new THREE.ShaderMaterial({
     },
     fragmentShader: tvFragment,
     vertexShader: tvVertex,
+    side: THREE.DoubleSide,
     defines: {
         PR: Math.min(2, window.devicePixelRatio).toFixed(1)
     }
@@ -94,11 +95,13 @@ gltfLoader.load(
         const tvScreen = model.scene.children.find( child => child.name === 'screen')
         const picture = model.scene.children.find( child => child.name === 'picture')
         
-        bakedMesh.material = bakedMaterial
+        // bakedMesh.material = bakedMaterial
+        bakedMesh.material = new THREE.MeshBasicMaterial({color: 0x000000})
         tvScreen.material = tvMaterial
         picture.material = pictureMaterial
 
-        scene.add( model.scene )
+        // scene.add( model.scene )
+        scene.add( tvScreen, picture, bakedMesh )
     }
 )
 
@@ -180,6 +183,19 @@ scene.add(camera)
 // Controls
 const controls = new OrbitControls(camera, canvas)
 controls.enableDamping = true
+controls.enablePan = false
+
+// horizontal rotation limit
+controls.minAzimuthAngle = -Math.PI * 0.05
+controls.maxAzimuthAngle = Math.PI * 0.6
+
+// vertical rotation limit
+controls.minPolarAngle = Math.PI * 0.2
+controls.maxPolarAngle = Math.PI * 0.4
+
+// distance limit
+controls.minDistance = 5
+controls.maxDistance = 10
 
 /**
  * Renderer
@@ -201,6 +217,21 @@ gui
         renderer.setClearColor( debugObject.clearColor )
     })
     .name('background color')
+
+/**
+ * Create floor
+ */
+const floorGeometry = new THREE.PlaneBufferGeometry(50, 50, 1, 1)
+floorGeometry.translate.z = 10
+const floorMaterial = new THREE.MeshBasicMaterial({color: 0xffffff})
+
+const floorMesh = new THREE.Mesh(floorGeometry, floorMaterial)
+
+// floor parameters
+floorMesh.rotation.set(-Math.PI / 2.0, 0.0, 0.0)
+
+
+scene.add( floorMesh )
 
 /**
  * Animate
