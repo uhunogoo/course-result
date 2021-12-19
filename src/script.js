@@ -46,18 +46,22 @@ gltfLoader.setDRACOLoader(dracoLoader)
 /**
  * Textures
  */
+const tvTexture = textureLoader.load('tv.jpg')
 const floorTexture = textureLoader.load('floor.jpg')
 const bakedTexture = textureLoader.load('baked-texture.jpg')
 bakedTexture.flipY = false
 bakedTexture.encoding = THREE.sRGBEncoding
 floorTexture.flipY = false
 floorTexture.encoding = THREE.sRGBEncoding
+tvTexture.flipY = false
+tvTexture.encoding = THREE.sRGBEncoding
 /**
  * Materials
  */
 // Baked material 
 const bakedMaterial = new THREE.MeshBasicMaterial({ map: bakedTexture, side: THREE.DoubleSide })
 const floorMaterial = new THREE.MeshBasicMaterial({ map: floorTexture, side: THREE.DoubleSide })
+const tvStandMaterial = new THREE.MeshBasicMaterial({ map: tvTexture, side: THREE.DoubleSide })
 
 // tv material
 const tvMaterial = new THREE.ShaderMaterial({
@@ -93,21 +97,24 @@ debugObject.portaColorEnd = '#ede4f5'
  * Model
  */
 gltfLoader.load(
-    // 'office-ready.glb',
-    'office-2.glb',
+    'office-ready.glb',
+    // 'office-2.glb',
     (model) => {
         const bakedMesh = model.scene.children.find( child => child.name === 'baked')
         const tvScreen = model.scene.children.find( child => child.name === 'screen')
         const picture = model.scene.children.find( child => child.name === 'picture')
         const floor = model.scene.children.find( child => child.name === 'floor')
+        const tvStand = model.scene.children.find( child => child.name === 'tvStand')
         
+        
+        tvStand.material = tvStandMaterial
         floor.material = floorMaterial
         bakedMesh.material = bakedMaterial
         tvScreen.material = tvMaterial
         picture.material = pictureMaterial
 
-        // scene.add( model.scene )
-        scene.add( floor, tvScreen, picture, bakedMesh )
+        scene.add( model.scene )
+        // scene.add( tvStand )
     }
 )
 
@@ -115,14 +122,14 @@ gltfLoader.load(
  * Fireflies
  */
 const firefliesGeometry = new THREE.BufferGeometry()
-const fireFliesCount = 30
+const fireFliesCount = 10
 const positionArray = new Float32Array(fireFliesCount * 3)
 const scale = new Float32Array(fireFliesCount)
 
 for( let i = 0; i < fireFliesCount; i++ ) {
-    positionArray[i * 3 + 0] = (Math.random() - 0.5) * 4
-    positionArray[i * 3 + 1] = Math.random() * 2
-    positionArray[i * 3 + 2] = (Math.random() - 0.5) * 4
+    positionArray[i * 3 + 0] = (Math.random() - 0.5) * 1.5
+    positionArray[i * 3 + 1] = Math.random() * 1.2
+    positionArray[i * 3 + 2] = (Math.random() - 0.5) * 1.3
 
     scale[i] = Math.random()
 }
@@ -148,6 +155,8 @@ gui.add( firefliesMaterial.uniforms.u_pointSize, 'value' ).min(0).max(500).name(
 
 // Points
 const fireflies = new THREE.Points( firefliesGeometry, firefliesMaterial )
+fireflies.position.z = -1
+fireflies.position.x = 0.3
 scene.add(fireflies)
 
 /**
@@ -181,9 +190,9 @@ window.addEventListener('resize', () =>
  */
 // Base camera
 const camera = new THREE.PerspectiveCamera(45, sizes.width / sizes.height, 0.1, 100)
-camera.position.x = 4
+camera.position.x = 6
 camera.position.y = 2
-camera.position.z = 4
+camera.position.z = 6
 scene.add(camera)
 
 // Controls
@@ -192,16 +201,16 @@ controls.enableDamping = true
 controls.enablePan = false
 
 // horizontal rotation limit
-// controls.minAzimuthAngle = -Math.PI * 0.05
-// controls.maxAzimuthAngle = Math.PI * 0.6
+controls.minAzimuthAngle = -Math.PI * 0.05
+controls.maxAzimuthAngle = Math.PI * 0.5
 
-// // vertical rotation limit
-// controls.minPolarAngle = Math.PI * 0.2
-// controls.maxPolarAngle = Math.PI * 0.4
+// vertical rotation limit
+controls.minPolarAngle = Math.PI * 0.3
+controls.maxPolarAngle = Math.PI * 0.4
 
-// // distance limit
-// controls.minDistance = 5
-// controls.maxDistance = 10
+// distance limit
+controls.minDistance = 5
+controls.maxDistance = 10
 
 /**
  * Renderer
@@ -228,7 +237,6 @@ gui
  * Create floor
  */
 const floorGeometry = new THREE.PlaneBufferGeometry(100, 100, 1, 1)
-console.log(floorGeometry.translate(0, 0, -0.3))
 const groundMaterial = new THREE.MeshBasicMaterial({color: 0xffffff})
 
 const floorMesh = new THREE.Mesh(floorGeometry, groundMaterial)
