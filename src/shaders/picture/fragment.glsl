@@ -117,5 +117,5 @@ void main() {
 
   color = vec3(box(st,vec2(0.150,0.850),0.01));
 
-  gl_FragColor = vec4((1.0 - color) * 0.9, 1.0 );
+  gl_FragColor = vec4((1.0 - color) * 0.85, 1.0 );
 }

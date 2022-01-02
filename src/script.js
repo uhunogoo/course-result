@@ -200,10 +200,10 @@ scene.add(camera)
 // Controls
 const controls = new OrbitControls(camera, canvas)
 controls.enableDamping = true
-controls.enablePan = false
+// controls.enablePan = false
 
 // horizontal rotation limit
-controls.minAzimuthAngle = -Math.PI * 0.05
+controls.minAzimuthAngle = -Math.PI * 0.025
 controls.maxAzimuthAngle = Math.PI * 0.5
 
 // vertical rotation limit
@@ -212,7 +212,7 @@ controls.maxPolarAngle = Math.PI * 0.5
 
 // distance limit
 controls.minDistance = 5
-controls.maxDistance = 10
+controls.maxDistance = 14
 
 /**
  * Light
