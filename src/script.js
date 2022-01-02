@@ -113,6 +113,8 @@ gltfLoader.load(
         tvScreen.material = tvMaterial
         picture.material = pictureMaterial
 
+        bakedMesh.castShadow = true
+
         scene.add( model.scene )
         // scene.add( tvStand )
     }
@@ -205,12 +207,22 @@ controls.minAzimuthAngle = -Math.PI * 0.05
 controls.maxAzimuthAngle = Math.PI * 0.5
 
 // vertical rotation limit
-controls.minPolarAngle = Math.PI * 0.3
-controls.maxPolarAngle = Math.PI * 0.4
+controls.minPolarAngle = -Math.PI * 0.3
+controls.maxPolarAngle = Math.PI * 0.5
 
 // distance limit
 controls.minDistance = 5
 controls.maxDistance = 10
+
+/**
+ * Light
+ */ 
+const ambientLight = new THREE.AmbientLight(0xffffff, .5)
+const directionalLight = new THREE.PointLight(0xffffff, 0.5, 20)
+directionalLight.position.set( 2, 8, 2 )
+directionalLight.castShadow = true
+
+scene.add(ambientLight, directionalLight)
 
 /**
  * Renderer
@@ -222,30 +234,41 @@ const renderer = new THREE.WebGLRenderer({
 renderer.setSize(sizes.width, sizes.height)
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 renderer.outputEncoding = THREE.sRGBEncoding
+renderer.shadowMap.enabled = true
 
-debugObject.clearColor = '#17192d'
+debugObject.clearColor = '#020202'
 renderer.setClearColor( debugObject.clearColor )
 
-gui
-    .addColor( debugObject, 'clearColor' )
-    .onChange(() => {
-        renderer.setClearColor( debugObject.clearColor )
-    })
-    .name('background color')
 
 /**
  * Create floor
  */
 const floorGeometry = new THREE.PlaneBufferGeometry(100, 100, 1, 1)
-const groundMaterial = new THREE.MeshBasicMaterial({color: 0xffffff})
-
+debugObject.floorColor = '#020409'
+const groundMaterial = new THREE.MeshStandardMaterial({color: debugObject.clearColor })
 const floorMesh = new THREE.Mesh(floorGeometry, groundMaterial)
+floorMesh.receiveShadow = true
 
 // floor parameters
 floorMesh.rotation.set(-Math.PI / 2.0, 0.0, 0.0)
+floorMesh.position.set(0, -0.3, 0.0)
 
+scene.add( floorMesh )
 
-// scene.add( floorMesh )
+/**
+ * Fog
+ */
+ const fog = new THREE.Fog(debugObject.clearColor, 1, 40)
+ scene.fog = fog
+
+ gui
+ .addColor( debugObject, 'clearColor' )
+ .onChange(() => {
+     renderer.setClearColor( debugObject.clearColor )
+     groundMaterial.color.set( debugObject.clearColor )
+     fog.color.set( debugObject.clearColor )
+ })
+ .name('background color')
 
 /**
  * Animate
@@ -259,6 +282,7 @@ const tick = () =>
     // Update material
     firefliesMaterial.uniforms.u_time.value = elapsedTime
     tvMaterial.uniforms.u_time.value = elapsedTime
+    pictureMaterial.uniforms.u_time.value = elapsedTime
     
     // Update controls
     controls.update()
