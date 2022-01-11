@@ -2,296 +2,267 @@ import './style.css'
 import * as dat from 'dat.gui'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
-import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
-
-import firefliesVertex from './shaders/fireflies/vertex.glsl'
-import firefliesFragment  from './shaders/fireflies/fragment.glsl'
-
-import tvVertex from './shaders/tv/vertex.glsl'
-import tvFragment  from './shaders/tv/fragment.glsl'
-import pictureVertex from './shaders/picture/vertex.glsl'
-import pictureFragment  from './shaders/picture/fragment.glsl'
+import gsap from 'gsap'
+import TweenMax from 'gsap/src/'
 
 /**
  * Base
  */
-// Debug
-const debugObject = {}
-const gui = new dat.GUI({
-    width: 400
-})
-
 // Canvas
 const canvas = document.querySelector('canvas.webgl')
 
-// Scene
-const scene = new THREE.Scene()
 
 /**
- * Loaders
+ * main
  */
-// Texture loader
-const textureLoader = new THREE.TextureLoader()
+class app {
+    constructor() {
+        // Debug
+        this.debugObject = {}
+        this.gui = new dat.GUI({
+            width: 400
+        })
 
-// Draco loader
-const dracoLoader = new DRACOLoader()
-dracoLoader.setDecoderPath('draco/')
+        // Scene
+        this.scene = new THREE.Scene()
 
-// GLTF loader
-const gltfLoader = new GLTFLoader()
-gltfLoader.setDRACOLoader(dracoLoader)
+        // raycaster
+        this.raycaster = new THREE.Raycaster()
 
-
-/**
- * Textures
- */
-const tvTexture = textureLoader.load('tv.jpg')
-const floorTexture = textureLoader.load('floor.jpg')
-const bakedTexture = textureLoader.load('baked-texture.jpg')
-bakedTexture.flipY = false
-bakedTexture.encoding = THREE.sRGBEncoding
-floorTexture.flipY = false
-floorTexture.encoding = THREE.sRGBEncoding
-tvTexture.flipY = false
-tvTexture.encoding = THREE.sRGBEncoding
-/**
- * Materials
- */
-// Baked material 
-const bakedMaterial = new THREE.MeshBasicMaterial({ map: bakedTexture, side: THREE.DoubleSide })
-const floorMaterial = new THREE.MeshBasicMaterial({ map: floorTexture, side: THREE.DoubleSide })
-const tvStandMaterial = new THREE.MeshBasicMaterial({ map: tvTexture, side: THREE.DoubleSide })
-
-// tv material
-const tvMaterial = new THREE.ShaderMaterial({
-    uniforms: {
-        u_time: { value: 0 }
-    },
-    fragmentShader: tvFragment,
-    vertexShader: tvVertex,
-    side: THREE.DoubleSide,
-    defines: {
-        PR: Math.min(2, window.devicePixelRatio).toFixed(1)
-    }
-})
-
-// picture material
-const pictureMaterial = new THREE.ShaderMaterial({
-    uniforms: {
-        u_time: { value: 0 }
-    },
-    fragmentShader: pictureFragment,
-    vertexShader: pictureVertex,
-    defines: {
-        PR: Math.min(2, window.devicePixelRatio).toFixed(1)
-    }
-})
-
-// Portal light material
-debugObject.portaColorStart = '#9868eb'
-debugObject.portaColorEnd = '#ede4f5'
-
-
-/**
- * Model
- */
-gltfLoader.load(
-    'office-ready.glb',
-    // 'office-2.glb',
-    (model) => {
-        const bakedMesh = model.scene.children.find( child => child.name === 'baked')
-        const tvScreen = model.scene.children.find( child => child.name === 'screen')
-        const picture = model.scene.children.find( child => child.name === 'picture')
-        const floor = model.scene.children.find( child => child.name === 'floor')
-        const tvStand = model.scene.children.find( child => child.name === 'tvStand')
+        // Sizes
+        this.sizes = {
+            width: window.innerWidth,
+            height: window.innerHeight
+        }
+        this.mouse = new THREE.Vector2()
         
-        
-        tvStand.material = tvStandMaterial
-        floor.material = floorMaterial
-        bakedMesh.material = bakedMaterial
-        tvScreen.material = tvMaterial
-        picture.material = pictureMaterial
+        // temp object
+        this.intersected = null
+        this.gridSize = {}
 
-        bakedMesh.castShadow = true
+        // timer
+        this.clock = new THREE.Clock()
 
-        scene.add( model.scene )
-        // scene.add( tvStand )
+        // Init scene
+        this.cameraInit()
+        this.rendererInit()
+        this.controlsInit()
+        this.lightInit()
+        this.mouseMove()
+
+        this.createGeometry()
+
+        this.tick()
     }
-)
-
-/**
- * Fireflies
- */
-const firefliesGeometry = new THREE.BufferGeometry()
-const fireFliesCount = 10
-const positionArray = new Float32Array(fireFliesCount * 3)
-const scale = new Float32Array(fireFliesCount)
-
-for( let i = 0; i < fireFliesCount; i++ ) {
-    positionArray[i * 3 + 0] = (Math.random() - 0.5) * 1.5
-    positionArray[i * 3 + 1] = Math.random() * 1.2
-    positionArray[i * 3 + 2] = (Math.random() - 0.5) * 1.3
-
-    scale[i] = Math.random()
-}
-
-firefliesGeometry.setAttribute('position', new THREE.BufferAttribute(positionArray, 3))
-firefliesGeometry.setAttribute('a_scale', new THREE.BufferAttribute(scale, 1))
-
-// Material 
-const firefliesMaterial = new THREE.ShaderMaterial({
-    vertexShader: firefliesVertex,
-    fragmentShader: firefliesFragment,
-    transparent: true,
-    depthWrite: false,
-    blending: THREE.AdditiveBlending,
-    uniforms: {
-        u_pixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
-        u_pointSize: { value: 100 },
-        u_time: { value: 0 }
-    }
-})
-
-gui.add( firefliesMaterial.uniforms.u_pointSize, 'value' ).min(0).max(500).name('fireflies size')
-
-// Points
-const fireflies = new THREE.Points( firefliesGeometry, firefliesMaterial )
-fireflies.position.z = -1
-fireflies.position.x = 0.3
-scene.add(fireflies)
-
-/**
- * Sizes
- */
-const sizes = {
-    width: window.innerWidth,
-    height: window.innerHeight
-}
-
-window.addEventListener('resize', () =>
-{
-    // Update sizes
-    sizes.width = window.innerWidth
-    sizes.height = window.innerHeight
-
-    // Update camera
-    camera.aspect = sizes.width / sizes.height
-    camera.updateProjectionMatrix()
-
-    // Update pixelRatio
-    firefliesMaterial.uniforms.value =  Math.min(window.devicePixelRatio, 2)
-
-    // Update renderer
-    renderer.setSize(sizes.width, sizes.height)
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-})
-
-/**
- * Camera
- */
-// Base camera
-const camera = new THREE.PerspectiveCamera(45, sizes.width / sizes.height, 0.1, 100)
-camera.position.x = 6
-camera.position.y = 2
-camera.position.z = 6
-scene.add(camera)
-
-// Controls
-const controls = new OrbitControls(camera, canvas)
-controls.enableDamping = true
-// controls.enablePan = false
-
-// horizontal rotation limit
-controls.minAzimuthAngle = -Math.PI * 0.025
-controls.maxAzimuthAngle = Math.PI * 0.5
-
-// vertical rotation limit
-controls.minPolarAngle = -Math.PI * 0.3
-controls.maxPolarAngle = Math.PI * 0.5
-
-// distance limit
-controls.minDistance = 5
-controls.maxDistance = 14
-
-/**
- * Light
- */ 
-const ambientLight = new THREE.AmbientLight(0xffffff, .5)
-const directionalLight = new THREE.PointLight(0xffffff, 0.5, 20)
-directionalLight.position.set( 2, 8, 2 )
-directionalLight.castShadow = true
-
-scene.add(ambientLight, directionalLight)
-
-/**
- * Renderer
- */
-const renderer = new THREE.WebGLRenderer({
-    canvas: canvas,
-    antialias: true
-})
-renderer.setSize(sizes.width, sizes.height)
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-renderer.outputEncoding = THREE.sRGBEncoding
-renderer.shadowMap.enabled = true
-
-debugObject.clearColor = '#020202'
-renderer.setClearColor( debugObject.clearColor )
-
-
-/**
- * Create floor
- */
-const floorGeometry = new THREE.PlaneBufferGeometry(100, 100, 1, 1)
-debugObject.floorColor = '#020409'
-const groundMaterial = new THREE.MeshStandardMaterial({color: debugObject.clearColor })
-const floorMesh = new THREE.Mesh(floorGeometry, groundMaterial)
-floorMesh.receiveShadow = true
-
-// floor parameters
-floorMesh.rotation.set(-Math.PI / 2.0, 0.0, 0.0)
-floorMesh.position.set(0, -0.3, 0.0)
-
-scene.add( floorMesh )
-
-/**
- * Fog
- */
- const fog = new THREE.Fog(debugObject.clearColor, 1, 40)
- scene.fog = fog
-
- gui
- .addColor( debugObject, 'clearColor' )
- .onChange(() => {
-     renderer.setClearColor( debugObject.clearColor )
-     groundMaterial.color.set( debugObject.clearColor )
-     fog.color.set( debugObject.clearColor )
- })
- .name('background color')
-
-/**
- * Animate
- */
-const clock = new THREE.Clock()
-
-const tick = () =>
-{
-    const elapsedTime = clock.getElapsedTime()
-
-    // Update material
-    firefliesMaterial.uniforms.u_time.value = elapsedTime
-    tvMaterial.uniforms.u_time.value = elapsedTime
-    pictureMaterial.uniforms.u_time.value = elapsedTime
     
-    // Update controls
-    controls.update()
+    
+    /**
+     * Camera
+     */
+    cameraInit() {
+        // Base camera
+        this.camera = new THREE.PerspectiveCamera(45, this.sizes.width / this.sizes.height, 0.1, 100)
+        this.camera.position.z = 6
 
-    // Render
-    renderer.render(scene, camera)
 
-    // Call tick again on the next frame
-    window.requestAnimationFrame(tick)
+        this.scene.add(this.camera)
+    }
+
+
+    /**
+     * Light
+     */
+     lightInit() {
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5)
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5) 
+
+        this.scene.add( ambientLight, directionalLight )
+     }
+    
+    /**
+     * Resize
+     */
+    resize() {
+        window.addEventListener('resize', () =>
+        {
+            // Update sizes
+            this.sizes.width = window.innerWidth
+            this.sizes.height = window.innerHeight
+        
+            // Update camera
+            this.camera.aspect = this.sizes.width / this.sizes.height
+            this.camera.updateProjectionMatrix()
+        
+            // Update renderer
+            this.renderer.setSize(this.sizes.width, this.sizes.height)
+            this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+        })
+    }
+    
+    
+    /**
+     * Control
+     */
+    controlsInit() {
+        // Controls
+        this.controls = new OrbitControls(this.camera, canvas)
+        this.controls.enableDamping = true
+    }
+    
+    
+    /**
+     * Renderer
+     */
+    rendererInit() {
+        this.renderer = new THREE.WebGLRenderer({
+            canvas: canvas,
+            antialias: true
+        })
+        this.renderer.setSize(this.sizes.width, this.sizes.height)
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+        this.renderer.outputEncoding = THREE.sRGBEncoding
+        this.renderer.shadowMap.enabled = true
+        
+        this.debugObject.clearColor = '#020202'
+        this.renderer.setClearColor( this.debugObject.clearColor )
+    }
+
+
+    /**
+     * Geometry
+     */
+    createGeometry() {
+        // geomerty parameters
+        const s = 0.3
+        const count = { x: 20, y: 12 }
+
+        this.group = new THREE.Group()
+        const geometry = new THREE.BoxBufferGeometry(s, s, s)
+        const material = new THREE.MeshStandardMaterial({color: 0xff0000, metalness: 0.3, roughness: 0.2})
+        const step = (s + s * 0.2)
+        
+        this.gridSize = new THREE.Vector2(
+            step * count.x,
+            step * count.y
+        )
+
+        for ( let i = 0; i < count.x; i++ )
+        for ( let j = 0; j < count.y; j++ ) {
+            const geo = geometry.clone()
+            const mat = material.clone()
+            const mesh = new THREE.Mesh(geo, mat)
+
+
+            mesh.position.set(
+                (i * step) - step * count.x / 2,
+                (j * step) - step * count.y / 2,
+                0,
+            )  
+
+            mesh.scale.set(0.7, 0.7, 0.7)
+
+            mesh.initialRotation = {
+                x: mesh.rotation.x,
+                y: mesh.rotation.y,
+                z: mesh.rotation.z,
+            }
+
+            this.group.add( mesh )
+        }
+
+        // empty
+        this.emptyMesh = new THREE.Mesh(
+            new THREE.PlaneBufferGeometry(step * count.x, step * count.y),
+            new THREE.MeshBasicMaterial({ color: 0xffffff })
+        )
+        this.emptyMesh.position.set(-(s + s * 0.2) / 2, -(s + s * 0.2) / 2, 0)
+
+        // add geometry to scene
+        this.scene.add(this.group)
+    }
+
+    /**
+     * Mouse move
+     */
+    mouseMove() {
+        document.addEventListener('mousemove', (e) => {    
+            this.mouse.x = ( e.clientX / window.innerWidth ) * 2 - 1;
+            this.mouse.y = - ( e.clientY / window.innerHeight ) * 2 + 1;
+
+            this.raycasterAnimation()
+        })
+    }
+    distance (x1, y1, x2, y2) {
+        return Math.sqrt(Math.pow((x1 - x2), 2) + Math.pow((y1 - y2), 2));
+    }
+    map (value, start1, stop1, start2, stop2) {
+        return (value - start1) / (stop1 - start1) * (stop2 - start2) + start2
+    }
+    raycasterAnimation() {
+        const ray = this.raycaster
+        ray.setFromCamera(this.mouse, this.camera)
+        const intersect = ray.intersectObjects( [this.emptyMesh] )
+        if (intersect.length) {
+            const {x, y} = intersect[0].point
+
+            this.group.children.map(el => {
+                
+                const range = this.distance(x, y, el.position.x + 0, el.position.y + 0)
+                // based on the distance we map the value to our min max Y position
+                // it works similar to a radius range
+
+                const maxPositionY = 2;
+                const minPositionY = 0;
+                const startDistance = 2;
+                const endDistance = 0;
+                let z = this.map(range, startDistance, endDistance, minPositionY, maxPositionY);
+                z = z < 1 ? 0 : z * 0.3
+                const tl = gsap.timeline()
+                // move objects to camera
+                tl.to(el.position, {
+                    z: z,
+                    duration: 0.1
+                }, 0)
+
+
+                const z_scale = el.position.z / 0.3
+                // randomly rotate objects
+                tl.to(el.rotation, {
+                    x: this.map(z_scale, -1, 0, (45 * Math.PI) / 180, el.initialRotation.x),
+                    y: this.map(z_scale, -1, 0, (-90 * Math.PI) / 180, el.initialRotation.y),
+                    z: this.map(z_scale, -1, 0, (90 * Math.PI) / 180, el.initialRotation.z)
+                }, 0)
+                // create a scale factor based on the mesh.position.y
+                const scaleFactor = z_scale / 1.6;
+
+                // to keep our scale to a minimum size of 1 we check if the scaleFactor is below 1
+                const scale = scaleFactor < 1 ? 0.7 : scaleFactor;
+                
+                // scale objects
+                tl.to(el.scale, {
+                    x: scale,
+                    y: scale,
+                    z: scale,
+                }, 0)
+            })
+        }
+    }
+    
+    /**
+     * Animate
+     */
+    tick() {
+        const elapsedTime = this.clock.getElapsedTime()
+        
+        // Update controls
+        this.controls.update()
+    
+        // Render
+        this.renderer.render(this.scene, this.camera)
+    
+        // Call tick again on the next frame
+        window.requestAnimationFrame(this.tick.bind(this))
+    }
 }
 
-tick()
+new app()
