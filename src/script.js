@@ -35,6 +35,11 @@ class app {
             height: window.innerHeight
         }
         this.mouse = new THREE.Vector2()
+        this.params = {
+            v: 0,
+            lastCall: 100,
+            mouseMove: false
+        }
         
         // temp object
         this.intersected = null
@@ -134,7 +139,7 @@ class app {
     createGeometry() {
         // geomerty parameters
         const s = 0.3
-        const count = { x: 20, y: 12 }
+        const count = { x: 10, y: 10 }
 
         this.group = new THREE.Group()
         const geometry = new THREE.BoxBufferGeometry(s, s, s)
@@ -178,18 +183,27 @@ class app {
         this.emptyMesh.position.set(-(s + s * 0.2) / 2, -(s + s * 0.2) / 2, 0)
 
         // add geometry to scene
-        this.scene.add(this.group)
+        this.scene.add(this.group, this.emptyMesh)
+        // this.scene.add(this.emptyMesh)
     }
 
     /**
      * Mouse move
      */
     mouseMove() {
-        document.addEventListener('mousemove', (e) => {    
-            this.mouse.x = ( e.clientX / window.innerWidth ) * 2 - 1;
-            this.mouse.y = - ( e.clientY / window.innerHeight ) * 2 + 1;
+        document.addEventListener('mousemove', (e) => {
 
-            this.raycasterAnimation()
+            this.params.mouseMove = true
+            this.mouse.x = ( e.clientX / window.innerWidth ) * 2 - 1
+            this.mouse.y = - ( e.clientY / window.innerHeight ) * 2 + 1
+
+            // const tl = gsap.timeline()
+            // gsap.to(tempV, {
+            //     v: 1
+            // }, 0)
+            // gsap.to(tempV, {
+            //     v: 0
+            // }, '<+=90%')
         })
     }
     distance (x1, y1, x2, y2) {
@@ -198,53 +212,68 @@ class app {
     map (value, start1, stop1, start2, stop2) {
         return (value - start1) / (stop1 - start1) * (stop2 - start2) + start2
     }
+    throttle(f, t) {
+        const that = this
+        if( that.clock.getElapsedTime() ) {
+            return function () {
+                let previousCall = that.params.lastCall
+                that.params.lastCall = that.clock.getElapsedTime()
+                if (previousCall === undefined || (that.params.lastCall - previousCall) > t) {
+                    f()
+                }
+            }
+        }
+    }
     raycasterAnimation() {
-        const ray = this.raycaster
-        ray.setFromCamera(this.mouse, this.camera)
-        const intersect = ray.intersectObjects( [this.emptyMesh] )
-        if (intersect.length) {
-            const {x, y} = intersect[0].point
+        if ( this.params.mouseMove ) {
+            const ray = this.raycaster
+            ray.setFromCamera(this.mouse, this.camera)
+            const intersect = ray.intersectObjects( [this.emptyMesh] )
+            
+            if (intersect.length) {
+                const {x, y} = intersect[0].point
+    
+                this.group.children.map(el => {
+                    const range = this.distance(x, y, el.position.x + 0, el.position.y + 0)
+                    // based on the distance we map the value to our min max Z position
+                    // it works similar to a radius range
+                    const maxPositionY = 2;
+                    const minPositionY = 0;
+                    const startDistance = 2;
+                    const endDistance = 0;
+                    let z = this.map(range, startDistance, endDistance, minPositionY, maxPositionY);
+                    z = z < 1 ? 0 : z * 0.3
+    
+                    const tl = gsap.timeline()
+                    // move objects to camera
+                    tl.to(el.position, {
+                        z: z,
+                        duration: 0.1
+                    }, 0)
+    
+    
+                    const z_scale = el.position.z / 0.3
+                    // randomly rotate objects
+                    tl.to(el.rotation, {
+                        x: this.map(z_scale, -1, 0, (45 * Math.PI) / 180, el.initialRotation.x),
+                        y: this.map(z_scale, -1, 0, (-90 * Math.PI) / 180, el.initialRotation.y),
+                        z: this.map(z_scale, -1, 0, (90 * Math.PI) / 180, el.initialRotation.z)
+                    }, 0)
+                    // create a scale factor based on the mesh.position.y
+                    const scaleFactor = z_scale / 1.6;
+                    // clamp scale
+                    const scale = scaleFactor < 1 ? 0.7 : scaleFactor;
+                    
+                    // scale objects
+                    tl.to(el.scale, {
+                        x: scale,
+                        y: scale,
+                        z: scale,
+                    }, 0)
+                })
+            }
 
-            this.group.children.map(el => {
-                
-                const range = this.distance(x, y, el.position.x + 0, el.position.y + 0)
-                // based on the distance we map the value to our min max Y position
-                // it works similar to a radius range
-
-                const maxPositionY = 2;
-                const minPositionY = 0;
-                const startDistance = 2;
-                const endDistance = 0;
-                let z = this.map(range, startDistance, endDistance, minPositionY, maxPositionY);
-                z = z < 1 ? 0 : z * 0.3
-                const tl = gsap.timeline()
-                // move objects to camera
-                tl.to(el.position, {
-                    z: z,
-                    duration: 0.1
-                }, 0)
-
-
-                const z_scale = el.position.z / 0.3
-                // randomly rotate objects
-                tl.to(el.rotation, {
-                    x: this.map(z_scale, -1, 0, (45 * Math.PI) / 180, el.initialRotation.x),
-                    y: this.map(z_scale, -1, 0, (-90 * Math.PI) / 180, el.initialRotation.y),
-                    z: this.map(z_scale, -1, 0, (90 * Math.PI) / 180, el.initialRotation.z)
-                }, 0)
-                // create a scale factor based on the mesh.position.y
-                const scaleFactor = z_scale / 1.6;
-
-                // to keep our scale to a minimum size of 1 we check if the scaleFactor is below 1
-                const scale = scaleFactor < 1 ? 0.7 : scaleFactor;
-                
-                // scale objects
-                tl.to(el.scale, {
-                    x: scale,
-                    y: scale,
-                    z: scale,
-                }, 0)
-            })
+            this.params.mouseMove = false
         }
     }
     
@@ -253,16 +282,22 @@ class app {
      */
     tick() {
         const elapsedTime = this.clock.getElapsedTime()
-        
         // Update controls
         this.controls.update()
     
         // Render
         this.renderer.render(this.scene, this.camera)
+
+        // throttle
+        // animate scroll
+        let animate = () => this.raycasterAnimation()
+        let throttled = this.throttle(animate, 0.014)
+        throttled()
     
         // Call tick again on the next frame
         window.requestAnimationFrame(this.tick.bind(this))
     }
 }
-
-new app()
+(function () {
+    new app()
+})()
