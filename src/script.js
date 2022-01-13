@@ -142,7 +142,13 @@ class app {
         const count = { x: 10, y: 10 }
 
         this.group = new THREE.Group()
-        const geometry = new THREE.BoxBufferGeometry(s, s, s)
+        const geometry = [
+            new THREE.TorusBufferGeometry(s /2, s * 0.3, 30, 30),
+            new THREE.BoxBufferGeometry(s,s,s),
+            new THREE.CylinderBufferGeometry(s / 1.5, s / 1.5, s * 0.3, 20),
+            new THREE.ConeBufferGeometry(s / 1.5, s, 20),
+        ]
+        // const geometry = new THREE.BoxBufferGeometry(s, s, s)
         const material = new THREE.MeshStandardMaterial({color: 0xff0000, metalness: 0.3, roughness: 0.2})
         const step = (s + s * 0.2)
         
@@ -153,10 +159,20 @@ class app {
 
         for ( let i = 0; i < count.x; i++ )
         for ( let j = 0; j < count.y; j++ ) {
-            const geo = geometry.clone()
+            const randomID = Math.round(Math.random() * (geometry.length - 1))
+            const geo = geometry[randomID].clone()
             const mat = material.clone()
             const mesh = new THREE.Mesh(geo, mat)
 
+            // rotate
+            if (2 === randomID) {
+                // cylinder geometry 
+                geo.rotateX(Math.PI * 0.5)
+            }
+            if (3 === randomID) {
+                // cone geometry 
+                geo.rotateX(Math.PI * 0.5)
+            }
 
             mesh.position.set(
                 (i * step) - step * count.x / 2,
@@ -183,8 +199,9 @@ class app {
         this.emptyMesh.position.set(-(s + s * 0.2) / 2, -(s + s * 0.2) / 2, 0)
 
         // add geometry to scene
-        this.scene.add(this.group, this.emptyMesh)
+        this.scene.add(this.group)
         // this.scene.add(this.emptyMesh)
+        // this.scene.add(this.group, this.emptyMesh)
     }
 
     /**
@@ -196,18 +213,10 @@ class app {
             this.params.mouseMove = true
             this.mouse.x = ( e.clientX / window.innerWidth ) * 2 - 1
             this.mouse.y = - ( e.clientY / window.innerHeight ) * 2 + 1
-
-            // const tl = gsap.timeline()
-            // gsap.to(tempV, {
-            //     v: 1
-            // }, 0)
-            // gsap.to(tempV, {
-            //     v: 0
-            // }, '<+=90%')
         })
     }
     distance (x1, y1, x2, y2) {
-        return Math.sqrt(Math.pow((x1 - x2), 2) + Math.pow((y1 - y2), 2));
+        return Math.sqrt(Math.pow((x1 - x2), 2) + Math.pow((y1 - y2), 2))
     }
     map (value, start1, stop1, start2, stop2) {
         return (value - start1) / (stop1 - start1) * (stop2 - start2) + start2
@@ -232,19 +241,26 @@ class app {
             
             if (intersect.length) {
                 const {x, y} = intersect[0].point
-    
-                this.group.children.map(el => {
+                this.group.children.map((el, i) => {
                     const range = this.distance(x, y, el.position.x + 0, el.position.y + 0)
                     // based on the distance we map the value to our min max Z position
                     // it works similar to a radius range
-                    const maxPositionY = 2;
-                    const minPositionY = 0;
-                    const startDistance = 2;
-                    const endDistance = 0;
-                    let z = this.map(range, startDistance, endDistance, minPositionY, maxPositionY);
-                    z = z < 1 ? 0 : z * 0.3
-    
-                    const tl = gsap.timeline()
+                    const maxPositionY = 4
+                    const minPositionY = 0
+                    const startDistance = 2
+                    const endDistance = -2
+
+                    let z = this.map(range, startDistance, endDistance, minPositionY, maxPositionY)
+                    z = z < 1 ? 0 : (z - 1) * 2
+
+                    const tl = gsap.timeline({
+                        defaults: {
+                            // ease: 'back.out(2.)',
+                            // ease: 'elastic.out(1., 0.5)',
+                            ease: 'power3.out',
+                            duration: 0.8
+                        }
+                    })
                     // move objects to camera
                     tl.to(el.position, {
                         z: z,
@@ -252,17 +268,18 @@ class app {
                     }, 0)
     
     
-                    const z_scale = el.position.z / 0.3
+                    const z_scale = el.position.z
                     // randomly rotate objects
                     tl.to(el.rotation, {
                         x: this.map(z_scale, -1, 0, (45 * Math.PI) / 180, el.initialRotation.x),
                         y: this.map(z_scale, -1, 0, (-90 * Math.PI) / 180, el.initialRotation.y),
                         z: this.map(z_scale, -1, 0, (90 * Math.PI) / 180, el.initialRotation.z)
                     }, 0)
+                    
                     // create a scale factor based on the mesh.position.y
-                    const scaleFactor = z_scale / 1.6;
+                    const scaleFactor = z_scale / 1.2
                     // clamp scale
-                    const scale = scaleFactor < 1 ? 0.7 : scaleFactor;
+                    const scale = scaleFactor < 1 ? 0.7 : scaleFactor
                     
                     // scale objects
                     tl.to(el.scale, {
