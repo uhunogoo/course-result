@@ -2,16 +2,10 @@ import './style.css'
 import * as dat from 'dat.gui'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
-import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
 
-import firefliesVertex from './shaders/fireflies/vertex.glsl'
-import firefliesFragment  from './shaders/fireflies/fragment.glsl'
+import galleryVertex from './shaders/gallery/vertex.glsl'
+import galleryFragment  from './shaders/gallery/fragment.glsl'
 
-import tvVertex from './shaders/tv/vertex.glsl'
-import tvFragment  from './shaders/tv/fragment.glsl'
-import pictureVertex from './shaders/picture/vertex.glsl'
-import pictureFragment  from './shaders/picture/fragment.glsl'
 
 /**
  * Base
@@ -28,138 +22,46 @@ const canvas = document.querySelector('canvas.webgl')
 // Scene
 const scene = new THREE.Scene()
 
+
 /**
  * Loaders
  */
 // Texture loader
 const textureLoader = new THREE.TextureLoader()
 
-// Draco loader
-const dracoLoader = new DRACOLoader()
-dracoLoader.setDecoderPath('draco/')
 
-// GLTF loader
-const gltfLoader = new GLTFLoader()
-gltfLoader.setDRACOLoader(dracoLoader)
-
-
-/**
- * Textures
- */
-const tvTexture = textureLoader.load('tv.jpg')
-const floorTexture = textureLoader.load('floor.jpg')
-const bakedTexture = textureLoader.load('baked-texture.jpg')
-bakedTexture.flipY = false
-bakedTexture.encoding = THREE.sRGBEncoding
-floorTexture.flipY = false
-floorTexture.encoding = THREE.sRGBEncoding
-tvTexture.flipY = false
-tvTexture.encoding = THREE.sRGBEncoding
 /**
  * Materials
  */
-// Baked material 
-const bakedMaterial = new THREE.MeshBasicMaterial({ map: bakedTexture, side: THREE.DoubleSide })
-const floorMaterial = new THREE.MeshBasicMaterial({ map: floorTexture, side: THREE.DoubleSide })
-const tvStandMaterial = new THREE.MeshBasicMaterial({ map: tvTexture, side: THREE.DoubleSide })
-
-// tv material
-const tvMaterial = new THREE.ShaderMaterial({
-    uniforms: {
-        u_time: { value: 0 }
-    },
-    fragmentShader: tvFragment,
-    vertexShader: tvVertex,
+const image = [
+    textureLoader.load('/image.jpg')
+]
+const galleryMaterial = new THREE.ShaderMaterial({
+    vertexShader: galleryVertex,
+    fragmentShader: galleryFragment,
+    transparent: true,
+    depthWrite: false,
     side: THREE.DoubleSide,
-    defines: {
-        PR: Math.min(2, window.devicePixelRatio).toFixed(1)
-    }
-})
-
-// picture material
-const pictureMaterial = new THREE.ShaderMaterial({
     uniforms: {
-        u_time: { value: 0 }
-    },
-    fragmentShader: pictureFragment,
-    vertexShader: pictureVertex,
-    defines: {
-        PR: Math.min(2, window.devicePixelRatio).toFixed(1)
+        u_texture: { value: null },
+        u_pixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
+        u_time: { value: 0 },
     }
 })
 
-// Portal light material
-debugObject.portaColorStart = '#9868eb'
-debugObject.portaColorEnd = '#ede4f5'
+galleryMaterial.uniforms.u_texture.value = image[0]
 
 
 /**
  * Model
  */
-gltfLoader.load(
-    'office-ready.glb',
-    // 'office-2.glb',
-    (model) => {
-        const bakedMesh = model.scene.children.find( child => child.name === 'baked')
-        const tvScreen = model.scene.children.find( child => child.name === 'screen')
-        const picture = model.scene.children.find( child => child.name === 'picture')
-        const floor = model.scene.children.find( child => child.name === 'floor')
-        const tvStand = model.scene.children.find( child => child.name === 'tvStand')
-        
-        
-        tvStand.material = tvStandMaterial
-        floor.material = floorMaterial
-        bakedMesh.material = bakedMaterial
-        tvScreen.material = tvMaterial
-        picture.material = pictureMaterial
+const planeGeometry = new THREE.PlaneBufferGeometry(2, 2, 2, 2)
+const planeMaterial = new THREE.MeshBasicMaterial({ map: image[0], color: 0xffffff, side: THREE.DoubleSide })
+const planeMesh = new THREE.Mesh( planeGeometry, galleryMaterial )
+planeMesh.position.y = 1
 
-        bakedMesh.castShadow = true
+scene.add(planeMesh)
 
-        scene.add( model.scene )
-        // scene.add( tvStand )
-    }
-)
-
-/**
- * Fireflies
- */
-const firefliesGeometry = new THREE.BufferGeometry()
-const fireFliesCount = 10
-const positionArray = new Float32Array(fireFliesCount * 3)
-const scale = new Float32Array(fireFliesCount)
-
-for( let i = 0; i < fireFliesCount; i++ ) {
-    positionArray[i * 3 + 0] = (Math.random() - 0.5) * 1.5
-    positionArray[i * 3 + 1] = Math.random() * 1.2
-    positionArray[i * 3 + 2] = (Math.random() - 0.5) * 1.3
-
-    scale[i] = Math.random()
-}
-
-firefliesGeometry.setAttribute('position', new THREE.BufferAttribute(positionArray, 3))
-firefliesGeometry.setAttribute('a_scale', new THREE.BufferAttribute(scale, 1))
-
-// Material 
-const firefliesMaterial = new THREE.ShaderMaterial({
-    vertexShader: firefliesVertex,
-    fragmentShader: firefliesFragment,
-    transparent: true,
-    depthWrite: false,
-    blending: THREE.AdditiveBlending,
-    uniforms: {
-        u_pixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
-        u_pointSize: { value: 100 },
-        u_time: { value: 0 }
-    }
-})
-
-gui.add( firefliesMaterial.uniforms.u_pointSize, 'value' ).min(0).max(500).name('fireflies size')
-
-// Points
-const fireflies = new THREE.Points( firefliesGeometry, firefliesMaterial )
-fireflies.position.z = -1
-fireflies.position.x = 0.3
-scene.add(fireflies)
 
 /**
  * Sizes
@@ -200,29 +102,14 @@ scene.add(camera)
 // Controls
 const controls = new OrbitControls(camera, canvas)
 controls.enableDamping = true
-// controls.enablePan = false
 
-// horizontal rotation limit
-controls.minAzimuthAngle = -Math.PI * 0.025
-controls.maxAzimuthAngle = Math.PI * 0.5
-
-// vertical rotation limit
-controls.minPolarAngle = -Math.PI * 0.3
-controls.maxPolarAngle = Math.PI * 0.5
-
-// distance limit
-controls.minDistance = 5
-controls.maxDistance = 14
 
 /**
  * Light
  */ 
-const ambientLight = new THREE.AmbientLight(0xffffff, .5)
-const directionalLight = new THREE.PointLight(0xffffff, 0.5, 20)
-directionalLight.position.set( 2, 8, 2 )
-directionalLight.castShadow = true
+const ambientLight = new THREE.AmbientLight(0xffffff, 1)
 
-scene.add(ambientLight, directionalLight)
+scene.add( ambientLight )
 
 /**
  * Renderer
@@ -233,42 +120,8 @@ const renderer = new THREE.WebGLRenderer({
 })
 renderer.setSize(sizes.width, sizes.height)
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-renderer.outputEncoding = THREE.sRGBEncoding
-renderer.shadowMap.enabled = true
-
-debugObject.clearColor = '#020202'
-renderer.setClearColor( debugObject.clearColor )
 
 
-/**
- * Create floor
- */
-const floorGeometry = new THREE.PlaneBufferGeometry(100, 100, 1, 1)
-debugObject.floorColor = '#020409'
-const groundMaterial = new THREE.MeshStandardMaterial({color: debugObject.clearColor })
-const floorMesh = new THREE.Mesh(floorGeometry, groundMaterial)
-floorMesh.receiveShadow = true
-
-// floor parameters
-floorMesh.rotation.set(-Math.PI / 2.0, 0.0, 0.0)
-floorMesh.position.set(0, -0.3, 0.0)
-
-scene.add( floorMesh )
-
-/**
- * Fog
- */
- const fog = new THREE.Fog(debugObject.clearColor, 1, 40)
- scene.fog = fog
-
- gui
- .addColor( debugObject, 'clearColor' )
- .onChange(() => {
-     renderer.setClearColor( debugObject.clearColor )
-     groundMaterial.color.set( debugObject.clearColor )
-     fog.color.set( debugObject.clearColor )
- })
- .name('background color')
 
 /**
  * Animate
@@ -278,14 +131,12 @@ const clock = new THREE.Clock()
 const tick = () =>
 {
     const elapsedTime = clock.getElapsedTime()
-
-    // Update material
-    firefliesMaterial.uniforms.u_time.value = elapsedTime
-    tvMaterial.uniforms.u_time.value = elapsedTime
-    pictureMaterial.uniforms.u_time.value = elapsedTime
     
     // Update controls
     controls.update()
+
+    // Udsate time
+    galleryMaterial.uniforms.u_time.value = elapsedTime
 
     // Render
     renderer.render(scene, camera)
