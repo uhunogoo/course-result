@@ -1,5 +1,6 @@
 uniform float u_time;
 uniform sampler2D u_texture;
+uniform sampler2D u_dataTexture;
 uniform vec3 u_colorStart;
 uniform vec3 u_colorEnd;
 
@@ -108,24 +109,38 @@ float box(vec2 _st, vec2 _size, float _smoothEdges){
 void main() {
   vec2 st = vUv;
 
-  vec3 color = vec3(0.0);
+  // vec3 color = vec3(0.0);
 
-  vec2 newUV = vec2(floor(vUv.x * 10.0) / 10.0, floor(vUv.y * 10.0) / 10.0);
-  float noise =  cnoise( vec3(newUV * 2.0, u_time * 0.2) );
+  // vec2 newUV = vec2(floor(vUv.x * 10.0) / 10.0, floor(vUv.y * 10.0) / 10.0);
+  // float noise =  cnoise( vec3(newUV * 2.0, u_time * 0.2) );
 
-  st = tile(st,10.);
-  st = rotate2D(st,PI*0.25 + noise);
+  // st = tile(st,10.);
 
-  color = vec3(box(st,vec2(0.150,0.850),0.01));
+  // color = vec3(box(st,vec2(0.,0.1),0.01));
 
-  gl_FragColor = vec4((1.0 - color) * 0.85, 1.0 );
+  // gl_FragColor = vec4((1.0 - color) * 0.85, 1.0 );
 
-  // texture
-  // vec2 _tile = tile(vUv, 10.);
-  vec2 _tile = mod(vUv * 10.0, 1.0);
-  vec4 image = texture2D( u_texture, vUv - _tile / 50.0);
+  // // texture
+  // vec2 bl = step(vec2(0.0),st);
+  // float pct = bl.x * bl.y;
 
+  // // top-right
+  // vec2 tr = step(vec2(0.0),1.0-st);
+  // pct *= tr.x * tr.y;
+
+  // // vec2 _tile = tile(vUv, 10.);
+  // vec2 _tile = mod(vUv * 10.0, 1.0);
+
+  // vec4 offset = texture2D( u_dataTexture, vUv );
+  // vec2 calcUV = mix(vUv, vUv + 0.2 * offset.r, (sin(u_time + offset.r / 20.) + 1.0) / 2.0 );
+  // vec4 image = texture2D( u_texture, calcUV ) * pct;
+
+  // gl_FragColor = image;
+  // gl_FragColor = vec4(vec3(calcUV.x), 1.0);
+
+  vec4 offset = texture2D( u_dataTexture, vUv );
+  st = clamp( st - 0.3 * offset.rg * vec2((cos(u_time * 1.4) + 1.0) / 2.0 * normalize(length(cnoise( vec3(st / 10.0, offset.r))) ), 0.0), vec2(0.0), vec2(1.0) );
+  vec4 image = texture2D( u_texture, st );
+  image.rgb = clamp( image.rgb, vec3(0.0), vec3(1.0) );
   gl_FragColor = image;
-
-  // gl_FragColor = vec4(vec3(_tile.x), 1.0);
 }

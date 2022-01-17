@@ -33,6 +33,32 @@ const textureLoader = new THREE.TextureLoader()
 /**
  * Materials
  */
+ const width = 10;
+ const height = 10;
+ 
+ const size = width * height;
+ const data = new Float32Array( 3 * size );
+ const color = new THREE.Color( 0xffffff );
+ 
+ const r = Math.floor( color.r * 255 );
+ const g = Math.floor( color.g * 255 );
+ const b = Math.floor( color.b * 255 );
+ 
+ for ( let i = 0; i < size; i ++ ) {
+    const r = Math.random()
+     const stride = i * 3;
+ 
+     data[ stride ] = r;
+     data[ stride + 1 ] = r;
+     data[ stride + 2 ] = r;
+ 
+ }
+ 
+ // used the buffer to create a DataTexture
+ 
+ const texture = new THREE.DataTexture( data, width, height, THREE.RGBFormat, THREE.FloatType );
+ texture.magFilter = texture.minFilter = THREE.NearestFilter
+
 const image = [
     textureLoader.load('/image.jpg')
 ]
@@ -44,6 +70,7 @@ const galleryMaterial = new THREE.ShaderMaterial({
     side: THREE.DoubleSide,
     uniforms: {
         u_texture: { value: null },
+        u_dataTexture: { value: texture },
         u_pixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
         u_time: { value: 0 },
     }
@@ -55,10 +82,10 @@ galleryMaterial.uniforms.u_texture.value = image[0]
 /**
  * Model
  */
-const planeGeometry = new THREE.PlaneBufferGeometry(2, 2, 2, 2)
+const planeGeometry = new THREE.PlaneBufferGeometry(4, 4, 2, 2)
 const planeMaterial = new THREE.MeshBasicMaterial({ map: image[0], color: 0xffffff, side: THREE.DoubleSide })
 const planeMesh = new THREE.Mesh( planeGeometry, galleryMaterial )
-planeMesh.position.y = 1
+// planeMesh.position.y = 1
 
 scene.add(planeMesh)
 
@@ -82,7 +109,7 @@ window.addEventListener('resize', () =>
     camera.updateProjectionMatrix()
 
     // Update pixelRatio
-    firefliesMaterial.uniforms.value =  Math.min(window.devicePixelRatio, 2)
+    // firefliesMaterial.uniforms.value =  Math.min(window.devicePixelRatio, 2)
 
     // Update renderer
     renderer.setSize(sizes.width, sizes.height)
@@ -94,8 +121,8 @@ window.addEventListener('resize', () =>
  */
 // Base camera
 const camera = new THREE.PerspectiveCamera(45, sizes.width / sizes.height, 0.1, 100)
-camera.position.x = 6
-camera.position.y = 2
+// camera.position.x = 6
+// camera.position.y = 2
 camera.position.z = 6
 scene.add(camera)
 
@@ -128,10 +155,19 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
  */
 const clock = new THREE.Clock()
 
+const updateDataTexture = () => {
+    let data = texture.image.data;
+    for (let i = 0; i < data.length; i += 3) {
+        data[i] *= .93
+        data[i + 1] *= 0.0
+    }
+    texture.needsUpdate = true
+}
+
 const tick = () =>
 {
     const elapsedTime = clock.getElapsedTime()
-    
+    // updateDataTexture()
     // Update controls
     controls.update()
 
