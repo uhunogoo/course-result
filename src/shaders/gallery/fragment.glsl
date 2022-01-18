@@ -138,9 +138,31 @@ void main() {
   // gl_FragColor = image;
   // gl_FragColor = vec4(vec3(calcUV.x), 1.0);
 
+
   vec4 offset = texture2D( u_dataTexture, vUv );
-  st = clamp( st - 0.3 * offset.rg * vec2((cos(u_time * 1.4) + 1.0) / 2.0 * normalize(length(cnoise( vec3(st / 10.0, offset.r))) ), 0.0), vec2(0.0), vec2(1.0) );
-  vec4 image = texture2D( u_texture, st );
+  // st = clamp( st - 0.3 * offset.rg * vec2((cos(u_time * 1.4) + 1.0) / 2.0 * normalize(length(cnoise( vec3(st / 10.0, offset.r))) ), 0.0), vec2(0.0), vec2(1.0) );
+  // st = st - 0.3 * offset.r;
+  
+  // CURRENT ANIMATION <--------------------------
+  
+  st = tile(st, 10.);
+  float intense = (floor(vUv.x * 10.0) / 9.0);
+  float time = (sin(u_time) + 1.0) / 2.0;
+  float cell_offset = offset.r * 2.0;
+  
+  // texture
+  vec2 bl = step(vec2(cell_offset * time),st);
+  
+  // top-right
+  vec2 tr = step(vec2(-cell_offset * time), 1.0 - st);
+
+  float pct = bl.x * bl.y * tr.x * tr.y;
+
+  // vec2 _tile = tile(vUv, 10.);
+  vec2 _tile = mod(vUv * 10.0, 1.0);
+
+  vec4 image = texture2D( u_texture, vUv - vec2(offset.r * 0.2 * time) );
   image.rgb = clamp( image.rgb, vec3(0.0), vec3(1.0) );
-  gl_FragColor = image;
+
+  gl_FragColor = image * pct;
 }
