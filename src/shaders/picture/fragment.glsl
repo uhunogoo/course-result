@@ -1,4 +1,5 @@
 uniform float u_time;
+uniform sampler2D u_texture;
 uniform vec3 u_colorStart;
 uniform vec3 u_colorEnd;
 
@@ -117,5 +118,12 @@ void main() {
 
   color = vec3(box(st,vec2(0.150,0.850),0.01));
 
-  gl_FragColor = vec4((1.0 - color) * 0.85, 1.0 );
+  vec4 image = texture2D( u_texture, vUv );
+  image.rgb = vec3(1.0 - image.r);
+
+  image = clamp( image * 2.0, vec4(0.0), vec4(1.0) );
+  float opacity = image.r;
+
+
+  gl_FragColor = vec4(image.rgb, 1.0);
 }
