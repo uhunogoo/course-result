@@ -77,6 +77,7 @@ class app {
             side: THREE.DoubleSide,
             uniforms: {
                 u_texture: { value: this.textureLoader.load('/image.jpg') },
+                u_backTexture: { value: this.textureLoader.load('/image-1.jpg') },
                 u_pixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
                 u_time: { value: 0 },
             }
@@ -161,7 +162,7 @@ class app {
         //     ease: "power1.inOut",
         //     repeat: -1,
         //     yoyo: true,
-        //     duration: 1.8,
+        //     duration: 0.9,
         //     stagger: {
         //         grid: [4,8],
         //         from: "center",
