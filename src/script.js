@@ -25,7 +25,8 @@ class app {
         }
         // grid
         this.count = { x: 3, y: 4 } // size
-        this.scaleZ = []            // z position array
+        this.rotationData = []            // rotation array
+        this.positionData = []            // position array
 
         // clock
         this.clock = new THREE.Clock()
@@ -86,8 +87,8 @@ class app {
             for (let j = 0; j < this.count.y; j++) {
                 const scale = 1.
                 const halfStep = {
-                    x: (scale * (this.count.x - 1)) / 2,
-                    y: (scale * (this.count.y - 1)) / 2,
+                    x: (scale * (this.count.x)) / 2,
+                    y: (scale * (this.count.y)) / 2,
                 }
                 const x = i - halfStep.x
                 const y = j - halfStep.y
@@ -98,12 +99,26 @@ class app {
                 heartShape.lineTo(x, y + 1)  // 4
                 heartShape.lineTo(x, y)   // 1
 
+                // find center
+                const c = new THREE.Vector3(
+                    (x + (x + 1)) / 2,
+                    (y + (y + 1)) / 2,
+                    0.05
+                )
+
                 const extrudeSettings = { depth: 0.3, bevelEnabled: false, steps: 1, bevelSize: 0, bevelThickness: 1 }
 
                 const geometry = new THREE.ExtrudeGeometry( heartShape, extrudeSettings )
 
+                // remove postion
+                geometry.translate( -c.x, -c.y, 0 )
+
                 const mesh = new THREE.Mesh( geometry, this.galleryMaterial )
-                this.scaleZ.push(mesh.position)
+                // move mesh to it place
+                mesh.position.copy( c )
+
+                this.positionData.push(mesh.position)
+                this.rotationData.push(mesh.rotation)
 
                 this.group.add(mesh)
             }
@@ -128,28 +143,31 @@ class app {
         })
     }
     animateGrid() {
-        console.log(this.scaleZ);
-        // gsap.to(this.scaleZ, {
-        //     z: Math.PI * 0.4,
+        gsap.to(this.rotationData, {
+            y: -Math.PI,
+            ease: "power1.inOut",
+            repeat: -1,
+            yoyo: true,
+            duration: 1.8,
+            stagger: {
+                grid: [4,8],
+                from: "center",
+                amount: .5
+            }
+        })
+        // gsap.to(this.positionData, {
+        //     x: 1,
+        //     y: 1,
         //     ease: "power1.inOut",
         //     repeat: -1,
         //     yoyo: true,
-        //     duration: 0.8,
+        //     duration: 1.8,
         //     stagger: {
         //         grid: [4,8],
         //         from: "center",
-        //         amount: 1.5
+        //         amount: .5
         //     }
-        // });
-        this.group.children.forEach( (el, i) => {
-            // el.position.z = Math.random() * 1
-            if (i === 0) {
-                el.position.z = Math.random() * 1
-            }
-            // gsap.fromTo( el.position, { z: this.scaleZ[i] }, {
-            //     z: 1
-            // })
-        })
+        // })
     }
     tick() {
         const elapsedTime = this.clock.getElapsedTime()
