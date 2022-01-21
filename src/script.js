@@ -23,6 +23,10 @@ class app {
             width: window.innerWidth,
             height: window.innerHeight
         }
+        this.aspect = {
+            back: new THREE.Vector2(1, 1),
+            front: new THREE.Vector2(1, 1)
+        }
         // grid
         this.count = { x: 3, y: 4 } // size
         this.rotationData = []            // rotation array
@@ -44,6 +48,7 @@ class app {
         this.geometry()
         this.resize()
         this.animateGrid()
+        this.clickEvent()
 
         this.tick()
     }
@@ -60,7 +65,8 @@ class app {
     rendererInit() {
         this.renderer = new THREE.WebGLRenderer({
             canvas: canvas,
-            antialias: true
+            antialias: true,
+            // alpha: true
         })
         this.renderer.setSize(this.sizes.width, this.sizes.height)
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
@@ -71,13 +77,43 @@ class app {
         this.controls.enableDamping = true
     }
     geometry() {
+        const backMaterial = this.textureLoader.load('/image-1.jpg', (material) => {
+            const img_height = material.image.naturalHeight
+            const img_width = material.image.naturalWidth
+
+            const width = this.count.x
+            const height = this.count.y
+
+            this.aspect.back = new THREE.Vector2(
+                Math.min((width / height) / (img_width / img_height), 1.0),
+                Math.min((height / width) / (img_height / img_width), 1.0)
+            )
+            this.galleryMaterial.uniforms.u_backAspect.value = this.aspect.back
+        })
+        const frontMaterial = this.textureLoader.load('/image.jpg', (material) => {
+            const img_height = material.image.naturalHeight
+            const img_width = material.image.naturalWidth
+            
+            const width = this.count.x
+            const height = this.count.y
+            
+            this.aspect.front = new THREE.Vector2(
+                Math.min((width / height) / (img_width / img_height), 1.0),
+                Math.min((height / width) / (img_height / img_width), 1.0)
+            )
+            this.galleryMaterial.uniforms.u_frontAspect.value = this.aspect.front
+        })
+
         this.galleryMaterial = new THREE.ShaderMaterial({
             vertexShader: galleryVertex,
             fragmentShader: galleryFragment,
             side: THREE.DoubleSide,
             uniforms: {
-                u_texture: { value: this.textureLoader.load('/image.jpg') },
-                u_backTexture: { value: this.textureLoader.load('/image-1.jpg') },
+                u_backAspect: { value: this.aspect.back },
+                u_frontAspect: { value: this.aspect.front },
+                u_count: { value: new THREE.Vector2( this.count.x, this.count.y ) },
+                u_texture: { value: frontMaterial },
+                u_backTexture: { value: backMaterial },
                 u_pixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
                 u_time: { value: 0 },
             }
@@ -94,17 +130,17 @@ class app {
                 const x = i - halfStep.x
                 const y = j - halfStep.y
                 const heartShape = new THREE.Shape()
-                heartShape.moveTo(x, y ) // 1
-                heartShape.lineTo(x + 1, y)    // 2
-                heartShape.lineTo(x + 1, y + 1)   // 3
-                heartShape.lineTo(x, y + 1)  // 4
-                heartShape.lineTo(x, y)   // 1
+                heartShape.moveTo(x, y )        // 1
+                heartShape.lineTo(x + 1, y)     // 2
+                heartShape.lineTo(x + 1, y + 1) // 3
+                heartShape.lineTo(x, y + 1)     // 4
+                heartShape.lineTo(x, y)         // 1
 
                 // find center
                 const c = new THREE.Vector3(
                     (x + (x + 1)) / 2,
                     (y + (y + 1)) / 2,
-                    0.05
+                    0
                 )
 
                 const extrudeSettings = { depth: 0.3, bevelEnabled: false, steps: 1, bevelSize: 0, bevelThickness: 1 }
@@ -118,7 +154,7 @@ class app {
                 // move mesh to it place
                 mesh.position.copy( c )
 
-                this.positionData.push(mesh.position)
+                this.positionData.push(mesh.scale)
                 this.rotationData.push(mesh.rotation)
 
                 this.group.add(mesh)
@@ -144,31 +180,33 @@ class app {
         })
     }
     animateGrid() {
-        gsap.to(this.rotationData, {
-            y: -Math.PI,
-            ease: "power1.inOut",
-            repeat: -1,
-            yoyo: true,
-            duration: 1.8,
-            stagger: {
-                grid: [4,8],
-                from: "center",
-                amount: .5
-            }
+        this.group.children.forEach( (el, i) => {
+            const tl = gsap.timeline({
+                defaults: {
+                    ease: "back.inOut(1.7)",
+                }
+            })
+            tl.to(el.scale, {
+                x: .9,
+                y: .9,
+                duration: .3,
+            }, 0)
+            tl.to(this.rotationData[i], {
+                y: this.rotationData[i].y - Math.PI,
+                duration: .8,
+            }, '<+=50%')
+            tl.to(el.scale, {
+                x: 1,
+                y: 1,
+                duration: .4,
+                ease: "power2.inOut"
+            }, '<+=150%')
         })
-        // gsap.to(this.positionData, {
-        //     x: 1,
-        //     y: 1,
-        //     ease: "power1.inOut",
-        //     repeat: -1,
-        //     yoyo: true,
-        //     duration: 0.9,
-        //     stagger: {
-        //         grid: [4,8],
-        //         from: "center",
-        //         amount: .5
-        //     }
-        // })
+    }
+    clickEvent() {
+        document.addEventListener('click', (e) => {
+            this.animateGrid()
+        })
     }
     tick() {
         const elapsedTime = this.clock.getElapsedTime()
@@ -176,7 +214,7 @@ class app {
         this.controls.update()
 
         // Udsate time
-        // this.galleryMaterial.uniforms.u_time.value = elapsedTime
+        this.galleryMaterial.uniforms.u_time.value = elapsedTime
 
         // Render
         this.renderer.render(this.scene, this.camera)
