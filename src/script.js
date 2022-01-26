@@ -28,7 +28,7 @@ class app {
             front: new THREE.Vector2(1, 1)
         }
         // grid
-        this.count = { x: 3, y: 4 } // size
+        this.count = { x: 4, y: 6 } // size
         this.rotationData = []            // rotation array
         this.positionData = []            // position array
 
@@ -47,8 +47,8 @@ class app {
 
         this.geometry()
         this.resize()
-        this.animateGrid()
-        this.clickEvent()
+        // this.animateGrid()
+        // this.clickEvent()
 
         this.tick()
     }
@@ -129,12 +129,12 @@ class app {
                 }
                 const x = i - halfStep.x
                 const y = j - halfStep.y
-                const heartShape = new THREE.Shape()
-                heartShape.moveTo(x, y )        // 1
-                heartShape.lineTo(x + 1, y)     // 2
-                heartShape.lineTo(x + 1, y + 1) // 3
-                heartShape.lineTo(x, y + 1)     // 4
-                heartShape.lineTo(x, y)         // 1
+                const squareShape = new THREE.Shape()
+                squareShape.moveTo(x, y )        // 1
+                squareShape.lineTo(x + 1, y)     // 2
+                squareShape.lineTo(x + 1, y + 1) // 3
+                squareShape.lineTo(x, y + 1)     // 4
+                squareShape.lineTo(x, y)         // 1
 
                 // find center
                 const c = new THREE.Vector3(
@@ -143,9 +143,9 @@ class app {
                     0
                 )
 
-                const extrudeSettings = { depth: 0.3, bevelEnabled: false, steps: 1, bevelSize: 0, bevelThickness: 1 }
+                const extrudeSettings = { depth: 0.1, bevelEnabled: false, steps: 1, bevelSize: 0, bevelThickness: 1 }
 
-                const geometry = new THREE.ExtrudeGeometry( heartShape, extrudeSettings )
+                const geometry = new THREE.ExtrudeGeometry( squareShape, extrudeSettings )
 
                 // remove postion
                 geometry.translate( -c.x, -c.y, 0 )
@@ -183,7 +183,7 @@ class app {
         this.group.children.forEach( (el, i) => {
             const tl = gsap.timeline({
                 defaults: {
-                    ease: "back.inOut(1.7)",
+                    ease: "power2.inOut",
                 }
             })
             tl.to(el.scale, {
@@ -194,12 +194,11 @@ class app {
             tl.to(this.rotationData[i], {
                 y: this.rotationData[i].y - Math.PI,
                 duration: .8,
-            }, '<+=50%')
+            }, '<+=30%')
             tl.to(el.scale, {
                 x: 1,
                 y: 1,
                 duration: .4,
-                ease: "power2.inOut"
             }, '<+=150%')
         })
     }
