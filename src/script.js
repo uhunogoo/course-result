@@ -4,9 +4,8 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
+import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader'
 
-import firefliesVertex from './shaders/fireflies/vertex.glsl'
-import firefliesFragment  from './shaders/fireflies/fragment.glsl'
 
 import tvVertex from './shaders/tv/vertex.glsl'
 import tvFragment  from './shaders/tv/fragment.glsl'
@@ -33,6 +32,7 @@ const scene = new THREE.Scene()
  */
 // Texture loader
 const textureLoader = new THREE.TextureLoader()
+const svgTextureLoader = new SVGLoader()
 
 // Draco loader
 const dracoLoader = new DRACOLoader()
@@ -252,7 +252,30 @@ dirMaterial.onBeforeCompile = (shader) =>
 const dirMesh = new THREE.Mesh(dirPlane, dirMaterial)
 dirMesh.rotation.x = -Math.PI * 0.5
 dirMesh.position.y = -1.99
-scene.add(dirMesh)
+
+// SVG map geometry
+const material = new THREE.MeshBasicMaterial({color: 0xffffff})
+const map = new THREE.Group()
+svgTextureLoader.load(
+    '9267.svg',
+    (image) => {
+        const path = image.paths
+        path.forEach( (el, i) => {
+            if (i !== 0) {
+                const shape = SVGLoader.createShapes( el )
+                const geometry = new THREE.ExtrudeGeometry(shape, { depth: 0.05, bevelEnabled: false, steps: 1, bevelSize: 0, bevelThickness: 1 })
+                geometry.computeVertexNormals()
+                const mat = material.clone()
+    
+                const mesh = new THREE.Mesh( geometry, mat )
+                map.add(mesh)
+            }
+        })
+    }
+)
+map.scale.set(0.008, 0.008, 1.0)
+scene.add(map)
+
 
 /**
  * Fireflies
