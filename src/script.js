@@ -256,67 +256,29 @@ dirMesh.position.y = -1.99
 // SVG map geometry
 const material = new THREE.MeshBasicMaterial({color: 0xffffff})
 const map = new THREE.Group()
+
 svgTextureLoader.load(
     '9267.svg',
     (image) => {
         const path = image.paths
+        const arr = []
         path.forEach( (el, i) => {
-            if (i !== 0) {
-                const shape = SVGLoader.createShapes( el )
-                const geometry = new THREE.ExtrudeGeometry(shape, { depth: 0.05, bevelEnabled: false, steps: 1, bevelSize: 0, bevelThickness: 1 })
-                geometry.computeVertexNormals()
-                const mat = material.clone()
-    
-                const mesh = new THREE.Mesh( geometry, mat )
-                map.add(mesh)
-            }
+            const shape = SVGLoader.createShapes( el )
+            const geometry = new THREE.ExtrudeGeometry(shape, { depth: 0.03, bevelEnabled: false, steps: 1, bevelSize: 0, bevelThickness: 1 })
+            geometry.computeVertexNormals()        
+            
+            const mat = material.clone()
+            
+            const mesh = new THREE.Mesh( geometry, mat )
+            mesh.rotation.x = Math.PI
+
+            map.add(mesh)
         })
     }
 )
 map.scale.set(0.008, 0.008, 1.0)
 scene.add(map)
 
-
-/**
- * Fireflies
- */
-// const firefliesGeometry = new THREE.BufferGeometry()
-// const fireFliesCount = 10
-// const positionArray = new Float32Array(fireFliesCount * 3)
-// const scale = new Float32Array(fireFliesCount)
-
-// for( let i = 0; i < fireFliesCount; i++ ) {
-//     positionArray[i * 3 + 0] = (Math.random() - 0.5) * 1.5
-//     positionArray[i * 3 + 1] = Math.random() * 1.2
-//     positionArray[i * 3 + 2] = (Math.random() - 0.5) * 1.3
-
-//     scale[i] = Math.random()
-// }
-
-// firefliesGeometry.setAttribute('position', new THREE.BufferAttribute(positionArray, 3))
-// firefliesGeometry.setAttribute('a_scale', new THREE.BufferAttribute(scale, 1))
-
-// // Material 
-// const firefliesMaterial = new THREE.ShaderMaterial({
-//     vertexShader: firefliesVertex,
-//     fragmentShader: firefliesFragment,
-//     transparent: true,
-//     depthWrite: false,
-//     blending: THREE.AdditiveBlending,
-//     uniforms: {
-//         u_pixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
-//         u_pointSize: { value: 100 },
-//         u_time: { value: 0 }
-//     }
-// })
-
-// gui.add( firefliesMaterial.uniforms.u_pointSize, 'value' ).min(0).max(500).name('fireflies size')
-
-// // Points
-// const fireflies = new THREE.Points( firefliesGeometry, firefliesMaterial )
-// fireflies.position.z = -1
-// fireflies.position.x = 0.3
-// scene.add(fireflies)
 
 /**
  * Sizes
@@ -349,7 +311,7 @@ window.addEventListener('resize', () =>
  */
 // Base camera
 const camera = new THREE.PerspectiveCamera(45, sizes.width / sizes.height, 0.1, 100)
-camera.position.x = 4
+// camera.position.x = 4
 // camera.position.y = 2
 camera.position.z = 6
 scene.add(camera)
