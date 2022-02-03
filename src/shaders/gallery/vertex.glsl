@@ -36,7 +36,7 @@ vec3 rotate(vec3 v, vec3 axis, float angle) {
 void main() {
     vec3 st = position;
 
-    st = rotate( st, vec3(1.0, 1.0, 0.0), PI );
+    // st = mix(st, rotate( st, vec3(1.0, 1.0, 0.0), PI ), (sin(u_time) + 1.0) / 2.0);
     
     vec4 modelPosition = modelMatrix * vec4(st, 1.0);
     vec4 viewPosition = viewMatrix * modelPosition;

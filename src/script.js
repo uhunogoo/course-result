@@ -28,7 +28,7 @@ class app {
             front: new THREE.Vector2(1, 1)
         }
         // grid
-        this.count = { x: 6, y: 6 } // size
+        this.count = { x: 4, y: 6 } // size
         this.rotationData = []            // rotation array
         this.positionData = []            // position array
 
@@ -54,8 +54,11 @@ class app {
     }
     cameraInit() {
         // Base camera
-        this.camera = new THREE.PerspectiveCamera(45, this.sizes.width / this.sizes.height, 0.1, 100)
-        this.camera.position.z = 6
+        this.camera = new THREE.PerspectiveCamera(15, this.sizes.width / this.sizes.height, 0.1, 100)
+        // const aspectRatio = this.sizes.width / this.sizes.height
+        // this.camera = new THREE.OrthographicCamera( - 1 * aspectRatio, 1 * aspectRatio, 1, - 1, 0.1, 100 )
+        
+        this.camera.position.z = 30
         this.scene.add(this.camera)
     }
     lightInit() {
@@ -65,7 +68,8 @@ class app {
     rendererInit() {
         this.renderer = new THREE.WebGLRenderer({
             canvas: canvas,
-            antialias: true
+            antialias: true,
+            alpha: true
         })
         this.renderer.setSize(this.sizes.width, this.sizes.height)
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
@@ -123,8 +127,8 @@ class app {
             for (let j = 0; j < this.count.y; j++) {
                 const scale = 1.
                 const halfStep = {
-                    x: (scale * (this.count.x)) / 2,
-                    y: (scale * (this.count.y)) / 2,
+                    x: ((this.count.x)) / 2,
+                    y: ((this.count.y)) / 2,
                 }
                 const x = i - halfStep.x
                 const y = j - halfStep.y
@@ -143,13 +147,14 @@ class app {
                     0
                 )
 
-                const extrudeSettings = { depth: 0.1, bevelEnabled: false, steps: 1, bevelSize: 0, bevelThickness: 1 }
+                const extrudeSettings = { depth: 0.4, bevelEnabled: false, steps: 1, bevelSize: 0, bevelThickness: 1 }
                 const geometry = new THREE.ExtrudeGeometry( squareShape, extrudeSettings )
 
                 // remove postion
                 geometry.translate( -c.x, -c.y, 0 )
 
                 const mesh = new THREE.Mesh( geometry, this.galleryMaterial )
+                mesh.scale.set( 0.999, 0.999, 0.999 )
                 // move mesh to it place
                 mesh.position.copy( c )
 
@@ -159,7 +164,6 @@ class app {
                 this.group.add(mesh)
             }
         }
-
         this.scene.add( this.group )
     }
     resize() {
