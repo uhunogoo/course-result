@@ -28,7 +28,7 @@ class app {
             front: new THREE.Vector2(1, 1)
         }
         // grid
-        this.count = { x: 4, y: 6 } // size
+        this.count = { x: 6, y: 6 } // size
         this.rotationData = []            // rotation array
         this.positionData = []            // position array
 
@@ -48,7 +48,7 @@ class app {
         this.geometry()
         this.resize()
         // this.animateGrid()
-        // this.clickEvent()
+        this.clickEvent()
 
         this.tick()
     }
@@ -65,8 +65,7 @@ class app {
     rendererInit() {
         this.renderer = new THREE.WebGLRenderer({
             canvas: canvas,
-            antialias: true,
-            // alpha: true
+            antialias: true
         })
         this.renderer.setSize(this.sizes.width, this.sizes.height)
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
@@ -129,6 +128,7 @@ class app {
                 }
                 const x = i - halfStep.x
                 const y = j - halfStep.y
+
                 const squareShape = new THREE.Shape()
                 squareShape.moveTo(x, y )        // 1
                 squareShape.lineTo(x + 1, y)     // 2
@@ -144,7 +144,6 @@ class app {
                 )
 
                 const extrudeSettings = { depth: 0.1, bevelEnabled: false, steps: 1, bevelSize: 0, bevelThickness: 1 }
-
                 const geometry = new THREE.ExtrudeGeometry( squareShape, extrudeSettings )
 
                 // remove postion
