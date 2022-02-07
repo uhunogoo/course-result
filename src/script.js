@@ -213,12 +213,12 @@ class app {
                 ease: "back.out(1.7)",
                 stagger: {
                     grid: [x, y],
-                    from: 'end',
+                    from: 'left',
                     amount: x * y * 0.02,
                 },
             },
             onComplete: () => {
-                this.animationControlls.rotation -= Math.PI 
+                this.animationControlls.rotation -= Math.PI
             },
         })
         tl.to(this.positionData, {
@@ -232,8 +232,9 @@ class app {
         }, '<+=10%')
         tl.to(this.rotationData, {
             y: this.animationControlls.rotation - Math.PI,
-            duration: 0.7,
-        }, '>-=40%')
+            duration: 0.6,
+            ease: 'power2.inOut'
+        }, '>-=30%')
         tl.to(this.scaleData, {
             y: 1,
             x: 1,
@@ -294,10 +295,12 @@ class app {
             gsap.to( this.animationControlls, {
                 progress: targetProgress,
                 duration: 0.8,
+                delay: 0.8,
                 onUpdate: () => {
                     this.backgroundMaterial.uniforms.u_progress.value = this.animationControlls.progress
                 }
             })
+            
         })
     }
     tick() {

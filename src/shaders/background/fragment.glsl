@@ -15,9 +15,6 @@ varying vec3 vPosition;
 #define PI 3.14159265358979323846
 
 void main() {
-    // vec4 sideColor = vec4( vec3(sin((vPosition.x + vPosition.y + vPosition.z) * 12.2)), 1.0 );
-
-    // vec4 backColor = texture2D(u_backTexture, newUV );
 
 
 
