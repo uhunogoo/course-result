@@ -1,7 +1,7 @@
 uniform float u_time;
+uniform float u_progress;
 uniform sampler2D u_texture;
-uniform vec3 u_colorStart;
-uniform vec3 u_colorEnd;
+
 
 varying vec2 vUv;
 
@@ -83,47 +83,28 @@ float cnoise(vec3 P){
   return 2.2 * n_xyz;
 }
 
-
-vec2 rotate2D(vec2 _st, float _angle){
-    _st -= 0.5;
-    _st =  mat2(cos(_angle),-sin(_angle),
-                sin(_angle),cos(_angle)) * _st;
-    _st += 0.5;
-    return _st;
-}
-
-vec2 tile(vec2 _st, float _zoom){
-    _st *= _zoom;
-    return fract(_st);
-}
-
-float box(vec2 _st, vec2 _size, float _smoothEdges){
-    _size = vec2(0.5)-_size*0.5;
-    vec2 aa = vec2(_smoothEdges*0.5);
-    vec2 uv = smoothstep(_size,_size+aa,_st);
-    uv *= smoothstep(_size,_size+aa,vec2(1.0)-_st);
-    return uv.x*uv.y;
-}
-
 void main() {
   vec2 st = vUv;
+  vec2 scaledUV = ( st - vec2(0.5, 1.0)) / 2. + vec2(0.5, 1.0);
+  vec2 mixUV = mix( scaledUV, st, u_progress );
 
-  vec3 color = vec3(0.0);
-
-  vec2 newUV = vec2(floor(vUv.x * 10.0) / 10.0, floor(vUv.y * 10.0) / 10.0);
-  float noise =  cnoise( vec3(newUV * 2.0, u_time * 0.2) );
-
-  st = tile(st,10.);
-  st = rotate2D(st,PI*0.25 + noise);
-
-  color = vec3(box(st,vec2(0.150,0.850),0.01));
-
-  vec4 image = texture2D( u_texture, vUv );
-  image.rgb = vec3(1.0 - image.r);
-
-  image = clamp( image * 2.0, vec4(0.0), vec4(1.0) );
-  float opacity = image.r;
+  
+  float noise =  cnoise( vec3(mixUV * 4.0,  u_time * 0.1) );
+  noise = clamp( pow(abs(noise), 2.0), 0.0, 1.0 );
 
 
-  gl_FragColor = vec4(image.rgb, 1.0);
+  // clouds
+  vec4 clouds = vec4( vec3(noise), 1.0 );
+  // in point 
+  float circle = 1.0 - length(vUv - vec2(0.5, 1.0 - u_progress * 0.5 ));
+  float circleNoise = smoothstep( 1.0 - u_progress * 1.2, 1.0 - u_progress * 1.2 + 0.3, circle * (1.0 - noise) );
+
+
+  // image
+  vec4 image = texture2D( u_texture, mixUV - circle * circleNoise * 0.02 * (1.0 - u_progress) );
+
+
+  gl_FragColor = image * circleNoise;
+
+  // gl_FragColor = clouds;
 }

@@ -47,96 +47,37 @@ gltfLoader.setDRACOLoader(dracoLoader)
 /**
  * Textures
  */
-const tvTexture = textureLoader.load('tv.jpg')
-const floorTexture = textureLoader.load('floor.jpg')
-const bakedTexture = textureLoader.load('baked-texture.jpg')
-bakedTexture.flipY = false
-bakedTexture.encoding = THREE.sRGBEncoding
-floorTexture.flipY = false
-floorTexture.encoding = THREE.sRGBEncoding
-tvTexture.flipY = false
-tvTexture.encoding = THREE.sRGBEncoding
+const mapTexture = textureLoader.load('wooden.jpg')
+mapTexture.encoding = THREE.sRGBEncoding
+
+
 /**
  * Materials
  */
-// Baked material 
-const bakedMaterial = new THREE.MeshBasicMaterial({ map: bakedTexture, side: THREE.DoubleSide })
-const floorMaterial = new THREE.MeshBasicMaterial({ map: floorTexture, side: THREE.DoubleSide })
-const tvStandMaterial = new THREE.MeshBasicMaterial({ map: tvTexture, side: THREE.DoubleSide })
-
-// tv material
-const tvMaterial = new THREE.ShaderMaterial({
-    uniforms: {
-        u_time: { value: 0 }
-    },
-    fragmentShader: tvFragment,
-    vertexShader: tvVertex,
-    side: THREE.DoubleSide,
-    defines: {
-        PR: Math.min(2, window.devicePixelRatio).toFixed(1)
-    }
-})
-
-// picture material
-const pictureMaterial = new THREE.ShaderMaterial({
-    uniforms: {
-        u_time: { value: 0 }
-    },
+debugObject.progress = 0
+const mapMaterial = new THREE.ShaderMaterial({
     fragmentShader: pictureFragment,
     vertexShader: pictureVertex,
-    defines: {
-        PR: Math.min(2, window.devicePixelRatio).toFixed(1)
+    side: THREE.DoubleSide,
+    uniforms: {
+        u_time: { value: 0 },
+        u_progress: { value: debugObject.progress },
+        u_texture: { value: mapTexture }
     }
 })
+gui.add(mapMaterial.uniforms.u_progress, 'value').min(0).max(1).step(0.001)
 
-// Portal light material
-debugObject.portaColorStart = '#9868eb'
-debugObject.portaColorEnd = '#ede4f5'
+
 
 
 /**
  * Model
  */
-const models = []
-const matcap = new THREE.MeshMatcapMaterial({
-    matcap: textureLoader.load('/4.png')
-})
-gltfLoader.load(
-    'map-1.glb',
-    (model) => {
-        const map_1 = model.scene.children[0]
-        const map_2 = model.scene.children[1]
-        map_1.geometry.translate(
-            - map_2.geometry.boundingBox.max.x * 0.5,
-            - map_1.geometry.boundingBox.max.y * 0.5,
-            - map_1.geometry.boundingBox.max.z * 0.5
-        )
-        map_1.scale.set( 40, 0, 40 )
-        
-        map_2.geometry.translate(
-            - map_2.geometry.boundingBox.max.x * 0.5,
-            - map_2.geometry.boundingBox.max.y * 0.5,
-            - map_2.geometry.boundingBox.max.z * 0.5 - map_1.geometry.boundingBox.max.z 
-        )
-        map_2.scale.set( 40, 0, 40 )
 
+const plane = new THREE.PlaneBufferGeometry( 2, 2 )
 
-        map_1.position.y = -map_2.geometry.boundingBox.max.y * 40
-        map_2.position.y = -map_2.geometry.boundingBox.max.y * 40
-        map_1.castShadow = true
-        map_2.castShadow = true
-        map_1.geometry.computeVertexNormals()
-        map_2.geometry.computeVertexNormals()
-        map_1.material = matcap.clone()
-        map_2.material = matcap.clone()
-        
-
-        models.push( ...model.scene.children )
-        scene.add( map_1, map_2 )
-
-        inAnimation()
-    }
-)
+const mapMesh = new THREE.Mesh( plane, mapMaterial )
+scene.add( mapMesh )
 
 /**
  * Sizes
@@ -156,9 +97,6 @@ window.addEventListener('resize', () =>
     camera.aspect = sizes.width / sizes.height
     camera.updateProjectionMatrix()
 
-    // Update pixelRatio
-    // firefliesMaterial.uniforms.value =  Math.min(window.devicePixelRatio, 2)
-
     // Update renderer
     renderer.setSize(sizes.width, sizes.height)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
@@ -169,9 +107,9 @@ window.addEventListener('resize', () =>
  */
 // Base camera
 const camera = new THREE.PerspectiveCamera(45, sizes.width / sizes.height, 0.1, 100)
-// camera.position.x = 4
-camera.position.y = 1
+
 camera.position.z = 3
+
 camera.lookAt( new THREE.Vector3( 0, 0, 0  ) )
 scene.add(camera)
 
@@ -211,74 +149,24 @@ renderer.shadowMap.enabled = true
 debugObject.clearColor = '#ffffff'
 renderer.setClearColor( debugObject.clearColor )
 
-
-/**
- * Create floor
- */
-const floorGeometry = new THREE.PlaneBufferGeometry(100, 100, 1, 1)
-debugObject.floorColor = '#ffffff'
-const groundMaterial = new THREE.MeshStandardMaterial({color: debugObject.clearColor, side: THREE.DoubleSide })
-const floorMesh = new THREE.Mesh(floorGeometry, groundMaterial)
-floorMesh.receiveShadow = true
-
-// floor parameters
-floorMesh.rotation.set(-Math.PI / 2.0, 0.0, 0.0)
-floorMesh.position.set(0, -0.025, 0.0)
-
-scene.add( floorMesh )
-
-/**
- * Fog
- */
- const fog = new THREE.Fog(debugObject.clearColor, 1, 60)
- scene.fog = fog
-
- gui
- .addColor( debugObject, 'clearColor' )
- .onChange(() => {
-     renderer.setClearColor( debugObject.clearColor )
-     groundMaterial.color.set( debugObject.clearColor )
-     fog.color.set( debugObject.clearColor )
- })
- .name('background color')
+gui
+.addColor( debugObject, 'clearColor' )
+.onChange(() => {
+    renderer.setClearColor( debugObject.clearColor )
+})
+.name('background color')
 
 /**
  * Animate
  */
 const clock = new THREE.Clock()
-
-const inAnimation = () => {
-    const modelScale = []
-    const modelPosition = []
-    models.forEach( el => {
-        modelScale.push( el.scale )
-        modelPosition.push( el.position )
-    })
-
-    gsap.to( modelScale, {
-        y: 20,
-        // yoyo: true,
-        // repeat: -1,
-        stagger: 0.3,
-        duration: 0.8
-    })
-    gsap.to( modelPosition, {
-        y: models[0].geometry.boundingBox.max.y * 40,
-        // yoyo: true,
-        // repeat: -1,
-        stagger: 0.3,
-        duration: 0.8
-    })
-}
-
 const tick = () =>
 {
     const elapsedTime = clock.getElapsedTime()
 
     // Update material
-    // firefliesMaterial.uniforms.u_time.value = elapsedTime
-    tvMaterial.uniforms.u_time.value = elapsedTime
-    
+    mapMaterial.uniforms.u_time.value = elapsedTime
+
     // Update controls
     controls.update()
 
